@@ -1,0 +1,99 @@
+# Tailscale proxy for Grafana
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tail-grafana-config
+  namespace: model-dev
+  labels:
+    tier: infra
+data:
+  serve.json: |
+    {
+      "TCP": {
+        "443": {
+          "HTTPS": true
+        }
+      },
+      "Web": {
+        "${TS_CERT_DOMAIN}:443": {
+          "Handlers": {
+            "/": {
+              "Proxy": "http://infra-grafana-service:3000"
+            }
+          }
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tail-grafana
+  namespace: model-dev
+  labels:
+    app: tail-grafana
+    tier: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tail-grafana
+  template:
+    metadata:
+      labels:
+        app: tail-grafana
+        tier: infra
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: tailscale
+        image: tailscale/tailscale:latest
+        env:
+        - name: TS_AUTHKEY
+          valueFrom:
+            secretKeyRef:
+              name: tailscale-auth
+              key: TS_AUTHKEY
+        - name: TS_HOSTNAME
+          value: "grafana"
+        - name: TS_KUBE_SECRET
+          value: ""
+        - name: TS_STATE_DIR
+          value: "/var/lib/tailscale"
+        - name: TS_USERSPACE
+          value: "true"
+        - name: TS_SERVE_CONFIG
+          value: "/config/serve.json"
+        - name: TS_SOCKET
+          value: "/tmp/tailscaled.sock"
+        volumeMounts:
+        - name: state
+          mountPath: /var/lib/tailscale
+        - name: config
+          mountPath: /config
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+      volumes:
+      - name: state
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: tail-grafana-config
+      - name: tmp
+        emptyDir: {}
+

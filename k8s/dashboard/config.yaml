@@ -47,7 +47,7 @@ data:
         items:
           - name: "JupyterLab"
             subtitle: "Interactive notebooks & development"
-            url: "https://jupyter-model-dev.nrp-nautilus.io"
+            url: "https://jupyter.tail69ad7.ts.net"
             icon: "fas fa-book"
             tag: "dev"
           
@@ -56,7 +56,7 @@ data:
         items:
           - name: "MLflow"
             subtitle: "Experiment tracking & model registry"
-            url: "https://mlflow-model-dev.nrp-nautilus.io"
+            url: "https://mlflow.tail69ad7.ts.net"
             icon: "fas fa-chart-line"
             tag: "mlops"
             
@@ -65,7 +65,7 @@ data:
         items:
           - name: "File Browser"
             subtitle: "Browse datasets & artifacts"
-            url: "https://files-model-dev.nrp-nautilus.io"
+            url: "https://files.tail69ad7.ts.net"
             icon: "fas fa-folder-open"
             tag: "storage"
             
@@ -74,7 +74,7 @@ data:
         items:
           - name: "Grafana"
             subtitle: "Pod resources & performance"
-            url: "https://monitor-model-dev.nrp-nautilus.io"
+            url: "https://grafana.tail69ad7.ts.net"
             icon: "fas fa-tachometer-alt"
             tag: "monitoring"
             
@@ -83,7 +83,7 @@ data:
         items:
           - name: "Container Registry"
             subtitle: "Private Docker registry"
-            url: "https://registry-model-dev.nrp-nautilus.io/v2/_catalog"
+            url: "https://registry.tail69ad7.ts.net/v2/_catalog"
             icon: "fas fa-cube"
             tag: "infra"
 
