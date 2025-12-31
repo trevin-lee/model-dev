@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-authelia
+  namespace: model-dev
+  labels:
+    app: authelia
+    tier: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authelia
+  template:
+    metadata:
+      labels:
+        app: authelia
+        tier: infra
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: authelia
+        image: authelia/authelia:latest
+        args: ["--config", "/config/configuration.yml"]
+        ports:
+        - containerPort: 9091
+        resources:
+          limits:
+            memory: 256Mi
+            cpu: "500m"
+          requests:
+            memory: 128Mi
+            cpu: "100m"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: infra-authelia-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-authelia-service
+  namespace: model-dev
+  labels:
+    app: authelia
+    tier: infra
+spec:
+  selector:
+    app: authelia
+  ports:
+  - port: 9091
+    targetPort: 9091

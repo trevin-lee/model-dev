@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-toplandscape-download
+  namespace: model-dev
+  labels:
+    tier: jobs
+    dataset: toplandscape
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: download
+        image: alpine:3.20
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -eu
+          apk add --no-cache aria2 tar
+          
+          DEST="/mnt/datasets/TopLandscape"
+          URL="https://hqu.web.cern.ch/datasets/TopLandscape/TopLandscape.tar"
+          MD5="4fca2e47afbf321b0f201da6b804c404"
+          
+          mkdir -p "$DEST"
+          echo "[INFO] Downloading TopLandscape.tar..."
+          aria2c -c -x16 -s16 -k1M --checksum="md5=$MD5" -d "$DEST" -o "TopLandscape.tar" "$URL"
+          
+          echo "[INFO] Extracting..."
+          tar -xf "$DEST/TopLandscape.tar" -C "$DEST" && rm -f "$DEST/TopLandscape.tar"
+          
+          echo "[DONE] TopLandscape dataset ready at $DEST"
+        volumeMounts:
+        - name: datasets
+          mountPath: /mnt/datasets
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "8Gi"
+      volumes:
+      - name: datasets
+        persistentVolumeClaim:
+          claimName: infra-datasets-pvc

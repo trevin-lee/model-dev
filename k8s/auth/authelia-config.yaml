@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-authelia-config
+  namespace: model-dev
+  labels:
+    tier: infra
+data:
+  configuration.yml: |
+    server:
+      address: tcp://0.0.0.0:9091
+    
+    log:
+      level: debug
+    
+    authentication_backend:
+      file:
+        path: /config/users_database.yml
+
+    access_control:
+      default_policy: deny
+      rules:
+        - domain: "*.nrp-nautilus.io"
+          policy: one_factor
+
+    session:
+      name: authelia_session
+      secret: "insecure_session_secret_change_me_1234567890"
+      expiration: 3600
+      inactivity: 300
+      cookies:
+        - domain: nrp-nautilus.io
+          authelia_url: https://auth-model-dev.nrp-nautilus.io
+          default_redirection_url: https://jupyter-model-dev.nrp-nautilus.io
+
+    identity_validation:
+      reset_password:
+        jwt_secret: "a_very_long_jwt_secret_that_is_at_least_32_chars"
+
+    regulation:
+      max_retries: 3
+      find_time: 120
+      ban_time: 300
+
+    storage:
+      encryption_key: "a_very_long_encryption_key_min_20_chars"
+      local:
+        path: /tmp/db.sqlite3
+
+    notifier:
+      filesystem:
+        filename: /tmp/notification.txt
+  
+  users_database.yml: |
+    users:
+      admin:
+        displayname: "Admin User"
+        password: "$2y$10$Ol1QGIVDj0iuwFQ9b42kv.gRdV7ThJFE75RENEQdIwHxMrREghPQW"
+        email: admin@example.com
+        groups:
+          - admins

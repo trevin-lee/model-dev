@@ -1,0 +1,79 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-jetclass-download
+  namespace: model-dev
+  labels:
+    tier: jobs
+    dataset: jetclass
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: download
+        image: alpine:3.20
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -eu
+          apk add --no-cache aria2 tar curl
+          
+          DEST="/mnt/datasets/JetClass"
+          mkdir -p "$DEST/Pythia/train_100M" "$DEST/Pythia"
+          
+          download() {
+            url="$1"
+            md5="$2"
+            outdir="$3"
+            filename=$(basename "$url" | cut -d'?' -f1)
+            echo "[INFO] Downloading $filename..."
+            # Use curl with redirect following for Zenodo
+            curl -L -C - -o "$outdir/$filename" "$url"
+            echo "[INFO] Verifying MD5..."
+            echo "$md5  $outdir/$filename" | md5sum -c -
+            echo "[INFO] Extracting $filename..."
+            tar -xf "$outdir/$filename" -C "$outdir" && rm -f "$outdir/$filename"
+          }
+          
+          # Training data (100M events, 10 parts) - using new Zenodo URL format
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part0.tar?download=1" "de4fd2dca2e68ab3c85d5cfd3bcc65c3" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part1.tar?download=1" "9722a359c5ef697bea0fbf79bf50f003" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part2.tar?download=1" "1e9f66cd1f915f9d10e90ae1d7761720" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part3.tar?download=1" "47348fc8985319fa4806da87500482fa" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part4.tar?download=1" "6b0ce16bd93b442a8d51914466990279" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part5.tar?download=1" "416e347512e716de51d392bee327b8e9" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part6.tar?download=1" "e9b9c1557b1b39bf0a16e4ab631ae451" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part7.tar?download=1" "5bfc6cb285ccb7680cefa9ac82ad1a2e" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part8.tar?download=1" "540c1a0d66dfad78d2b363c5740ccf86" "$DEST/Pythia/train_100M"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_train_100M_part9.tar?download=1" "668f40b3275167ff7104c48317c0ae2a" "$DEST/Pythia/train_100M"
+          
+          # Validation and test data
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_val_5M.tar?download=1" "7235ccb577ed85023ea3ab4d5e6160cf" "$DEST/Pythia"
+          download "https://zenodo.org/records/6619768/files/JetClass_Pythia_test_20M.tar?download=1" "64e5156d26d101adeb43b8388207d767" "$DEST/Pythia"
+          
+          echo "[DONE] JetClass dataset ready at $DEST"
+        volumeMounts:
+        - name: datasets
+          mountPath: /mnt/datasets
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "8Gi"
+      volumes:
+      - name: datasets
+        persistentVolumeClaim:
+          claimName: infra-datasets-pvc

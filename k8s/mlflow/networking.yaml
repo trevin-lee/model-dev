@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-mlflow-service
+  namespace: model-dev
+  labels:
+    app: mlflow
+    tier: infra
+spec:
+  selector:
+    app: mlflow
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: infra-mlflow-ingress
+  namespace: model-dev
+  labels:
+    tier: infra
+  annotations:
+    haproxy.org/auth-url: "https://auth-model-dev.nrp-nautilus.io/api/verify?rd=https://mlflow-model-dev.nrp-nautilus.io"
+    haproxy.org/auth-signin: "https://auth-model-dev.nrp-nautilus.io/?rd=https://mlflow-model-dev.nrp-nautilus.io"
+    ingress.kubernetes.io/auth-url: "https://auth-model-dev.nrp-nautilus.io/api/verify?rd=https://mlflow-model-dev.nrp-nautilus.io"
+    ingress.kubernetes.io/auth-signin: "https://auth-model-dev.nrp-nautilus.io/?rd=https://mlflow-model-dev.nrp-nautilus.io"
+spec:
+  ingressClassName: haproxy
+  tls:
+  - hosts:
+    - mlflow-model-dev.nrp-nautilus.io
+  rules:
+  - host: mlflow-model-dev.nrp-nautilus.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: infra-mlflow-service
+            port:
+              number: 5000

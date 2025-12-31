@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: infra-jupyter-pvc
+  namespace: model-dev
+  labels:
+    app: jupyter
+    tier: infra
+spec:
+  storageClassName: rook-cephfs-ucsd
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi

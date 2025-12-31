@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-dashboard-config
+  namespace: model-dev
+  labels:
+    tier: infra
+data:
+  config.yml: |
+    title: "Model Dev Hub"
+    subtitle: "ML Infrastructure Dashboard"
+    header: true
+    footer: false
+    
+    theme: default
+    colors:
+      light:
+        highlight-primary: "#3367d6"
+        highlight-secondary: "#4285f4"
+        highlight-hover: "#5a95f5"
+        background: "#f5f5f5"
+        card-background: "#ffffff"
+        text: "#363636"
+        text-header: "#424242"
+        text-title: "#303030"
+        text-subtitle: "#424242"
+        card-shadow: rgba(0, 0, 0, 0.1)
+        link: "#3273dc"
+        link-hover: "#363636"
+      dark:
+        highlight-primary: "#3367d6"
+        highlight-secondary: "#4285f4"
+        highlight-hover: "#5a95f5"
+        background: "#131313"
+        card-background: "#2b2b2b"
+        text: "#eaeaea"
+        text-header: "#ffffff"
+        text-title: "#fafafa"
+        text-subtitle: "#f5f5f5"
+        card-shadow: rgba(0, 0, 0, 0.4)
+        link: "#3273dc"
+        link-hover: "#ffdd57"
+    
+    services:
+      - name: "Development"
+        icon: "fas fa-code"
+        items:
+          - name: "JupyterLab"
+            subtitle: "Interactive notebooks & development"
+            url: "https://jupyter-model-dev.nrp-nautilus.io"
+            icon: "fas fa-book"
+            tag: "dev"
+          
+      - name: "ML Ops"
+        icon: "fas fa-cogs"
+        items:
+          - name: "MLflow"
+            subtitle: "Experiment tracking & model registry"
+            url: "https://mlflow-model-dev.nrp-nautilus.io"
+            icon: "fas fa-chart-line"
+            tag: "mlops"
+            
+      - name: "Storage"
+        icon: "fas fa-database"
+        items:
+          - name: "File Browser"
+            subtitle: "Browse datasets & artifacts"
+            url: "https://files-model-dev.nrp-nautilus.io"
+            icon: "fas fa-folder-open"
+            tag: "storage"
+

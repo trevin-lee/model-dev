@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: infra-mlflow-pvc
+  namespace: model-dev
+  labels:
+    app: mlflow
+    tier: infra
+spec:
+  storageClassName: rook-cephfs-ucsd
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1000Gi

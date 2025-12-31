@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-browser
+  namespace: model-dev
+  labels:
+    app: browser
+    tier: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: browser
+  template:
+    metadata:
+      labels:
+        app: browser
+        tier: infra
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: filebrowser
+        image: filebrowser/filebrowser:v2
+        args: ["--noauth", "--root", "/srv", "--port", "8080", "--address", "0.0.0.0"]
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: "1"
+          requests:
+            memory: 128Mi
+            cpu: "100m"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: mlflow-volume
+          mountPath: /srv/mlflow
+          readOnly: false
+        - name: datasets-volume
+          mountPath: /srv/datasets
+          readOnly: false
+        - name: jupyter-volume
+          mountPath: /srv/jupyter
+          readOnly: false
+      volumes:
+      - name: mlflow-volume
+        persistentVolumeClaim:
+          claimName: infra-mlflow-pvc
+      - name: datasets-volume
+        persistentVolumeClaim:
+          claimName: infra-datasets-pvc
+      - name: jupyter-volume
+        persistentVolumeClaim:
+          claimName: infra-jupyter-pvc

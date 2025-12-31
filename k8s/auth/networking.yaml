@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: infra-authelia-ingress
+  namespace: model-dev
+  labels:
+    tier: infra
+spec:
+  ingressClassName: haproxy
+  tls:
+  - hosts:
+    - auth-model-dev.nrp-nautilus.io
+  rules:
+  - host: auth-model-dev.nrp-nautilus.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: infra-authelia-service
+            port:
+              number: 9091

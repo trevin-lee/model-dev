@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-jupyter
+  namespace: model-dev
+  labels:
+    app: jupyter
+    tier: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jupyter
+  template:
+    metadata:
+      labels:
+        app: jupyter
+        tier: infra
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: jupyter
+        image: jupyter/minimal-notebook:latest
+        command: ["start-notebook.sh", "--IdentityProvider.token=''"]
+        resources:
+          limits:
+            memory: 16Gi
+            cpu: "4"
+          requests:
+            memory: 8Gi
+            cpu: "2"
+        ports:
+        - containerPort: 8888
+          name: http
+        env:
+        - name: JUPYTER_ENABLE_LAB
+          value: "yes"
+        - name: RESTARTABLE
+          value: "yes"
+        volumeMounts:
+        - name: jupyter-volume
+          mountPath: /home/jovyan/work
+          readOnly: false
+        - name: mlflow-volume
+          mountPath: /home/jovyan/mlflow
+          readOnly: true
+        - name: datasets-volume
+          mountPath: /home/jovyan/datasets
+          readOnly: true
+        - name: dshm
+          mountPath: /dev/shm
+      volumes:
+      - name: jupyter-volume
+        persistentVolumeClaim:
+          claimName: infra-jupyter-pvc
+      - name: mlflow-volume
+        persistentVolumeClaim:
+          claimName: infra-mlflow-pvc
+      - name: datasets-volume
+        persistentVolumeClaim:
+          claimName: infra-datasets-pvc
+      - name: dshm
+        emptyDir:
+          medium: Memory

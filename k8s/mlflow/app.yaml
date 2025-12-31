@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-mlflow
+  namespace: model-dev
+  labels:
+    app: mlflow
+    tier: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+        tier: infra
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: mlflow
+        image: ghcr.io/mlflow/mlflow:v2.7.1
+        command: ["mlflow", "server"]
+        args:
+          - "--host"
+          - "0.0.0.0"
+          - "--backend-store-uri"
+          - "sqlite:///mlflow/mlflow.db"
+          - "--default-artifact-root"
+          - "/mlflow/artifacts"
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            memory: 4Gi
+            cpu: "2"
+          requests:
+            memory: 1Gi
+            cpu: "500m"
+        volumeMounts:
+        - name: mlflow-data
+          mountPath: /mlflow
+      volumes:
+      - name: mlflow-data
+        persistentVolumeClaim:
+          claimName: infra-mlflow-pvc
