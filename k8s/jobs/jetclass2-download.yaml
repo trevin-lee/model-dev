@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-jetclass2-download
+  namespace: model-dev
+  labels:
+    tier: jobs
+    dataset: jetclass2
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: download
+        image: python:3.11-slim
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -eu
+          
+          DEST="/mnt/datasets/JetClass2"
+          REPO="jet-universe/jetclass2"
+          
+          echo "[INFO] Installing huggingface_hub..."
+          pip install --no-cache-dir huggingface_hub
+          
+          mkdir -p "$DEST"
+          
+          echo "[INFO] Downloading JetClass-II dataset from Hugging Face..."
+          echo "[INFO] Repository: https://huggingface.co/datasets/$REPO"
+          
+          python -c "
+          from huggingface_hub import snapshot_download
+          snapshot_download(
+              repo_id='$REPO',
+              repo_type='dataset',
+              local_dir='$DEST',
+              local_dir_use_symlinks=False
+          )
+          "
+          
+          echo "[INFO] Download complete. Listing contents..."
+          ls -lah "$DEST"
+          
+          echo "[DONE] JetClass-II dataset ready at $DEST"
+        volumeMounts:
+        - name: datasets
+          mountPath: /mnt/datasets
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "8Gi"
+      volumes:
+      - name: datasets
+        persistentVolumeClaim:
+          claimName: infra-datasets-pvc
+
