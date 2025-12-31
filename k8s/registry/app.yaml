@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-registry
+  namespace: model-dev
+  labels:
+    app: registry
+    tier: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+        tier: infra
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      containers:
+      - name: registry
+        image: registry:2
+        ports:
+        - containerPort: 5000
+        env:
+        - name: REGISTRY_STORAGE_DELETE_ENABLED
+          value: "true"
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
+          value: "[https://registry-model-dev.nrp-nautilus.io]"
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods
+          value: "[HEAD, GET, OPTIONS, DELETE]"
+        - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers
+          value: "[Authorization, Accept, Cache-Control]"
+        volumeMounts:
+        - name: registry-data
+          mountPath: /var/lib/registry
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+      volumes:
+      - name: registry-data
+        persistentVolumeClaim:
+          claimName: infra-registry-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-registry-service
+  namespace: model-dev
+  labels:
+    app: registry
+    tier: infra
+spec:
+  selector:
+    app: registry
+  ports:
+  - port: 5000
+    targetPort: 5000
+

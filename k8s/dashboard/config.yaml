@@ -68,4 +68,22 @@ data:
             url: "https://files-model-dev.nrp-nautilus.io"
             icon: "fas fa-folder-open"
             tag: "storage"
+            
+      - name: "Monitoring"
+        icon: "fas fa-heartbeat"
+        items:
+          - name: "Grafana"
+            subtitle: "Pod resources & performance"
+            url: "https://monitor-model-dev.nrp-nautilus.io"
+            icon: "fas fa-tachometer-alt"
+            tag: "monitoring"
+            
+      - name: "Infrastructure"
+        icon: "fas fa-server"
+        items:
+          - name: "Container Registry"
+            subtitle: "Private Docker registry"
+            url: "https://registry-model-dev.nrp-nautilus.io/v2/_catalog"
+            icon: "fas fa-cube"
+            tag: "infra"
 

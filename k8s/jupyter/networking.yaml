@@ -23,10 +23,8 @@ metadata:
   labels:
     tier: infra
   annotations:
-    haproxy.org/auth-url: "https://auth-model-dev.nrp-nautilus.io/api/verify?rd=https://jupyter-model-dev.nrp-nautilus.io"
-    haproxy.org/auth-signin: "https://auth-model-dev.nrp-nautilus.io/?rd=https://jupyter-model-dev.nrp-nautilus.io"
-    ingress.kubernetes.io/auth-url: "https://auth-model-dev.nrp-nautilus.io/api/verify?rd=https://jupyter-model-dev.nrp-nautilus.io"
-    ingress.kubernetes.io/auth-signin: "https://auth-model-dev.nrp-nautilus.io/?rd=https://jupyter-model-dev.nrp-nautilus.io"
+    haproxy.org/forwarded-for: "enabled"
+    haproxy.org/request-set-header: "X-Forwarded-Proto https"
 spec:
   ingressClassName: haproxy
   tls:

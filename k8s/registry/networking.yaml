@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: infra-registry-ingress
+  namespace: model-dev
+  labels:
+    tier: infra
+  annotations:
+    # Large body size for image pushes
+    haproxy.org/request-set-header: "X-Forwarded-Proto https"
+    haproxy.org/client-body-buffer-size: "0"
+    haproxy.org/timeout-client: "600s"
+    haproxy.org/timeout-server: "600s"
+    # Note: We don't use Authelia here because Docker client needs basic auth
+    # Registry will be protected by the ingress-level basic auth
+spec:
+  ingressClassName: haproxy
+  tls:
+  - hosts:
+    - registry-model-dev.nrp-nautilus.io
+  rules:
+  - host: registry-model-dev.nrp-nautilus.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: infra-registry-service
+            port:
+              number: 5000
+

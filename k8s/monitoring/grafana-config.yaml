@@ -1,0 +1,255 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-grafana-datasources
+  namespace: model-dev
+  labels:
+    tier: infra
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus (Local)
+        type: prometheus
+        uid: PBFA97CFB590B2093
+        access: proxy
+        url: http://infra-prometheus-service:9090
+        isDefault: false
+        editable: false
+      - name: Cluster Prometheus
+        type: prometheus
+        uid: cluster-prometheus
+        access: proxy
+        url: http://prometheus-k8s.monitoring.svc.cluster.local:9090
+        isDefault: false
+        editable: false
+      - name: Thanos
+        type: prometheus
+        uid: thanos-querier
+        access: proxy
+        url: http://thanos-querier.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-grafana-dashboards-provider
+  namespace: model-dev
+  labels:
+    tier: infra
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-grafana-dashboard-pods
+  namespace: model-dev
+  labels:
+    tier: infra
+data:
+  pods-dashboard.json: |
+    {
+      "title": "Pod Resources",
+      "uid": "model-dev-pods",
+      "timezone": "browser",
+      "editable": true,
+      "refresh": "10s",
+      "templating": {
+        "list": [
+          {
+            "name": "pod",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+            "query": "label_values(kube_pod_info{namespace=\"model-dev\"}, pod)",
+            "refresh": 2,
+            "includeAll": true,
+            "allValue": ".*",
+            "multi": true,
+            "current": {"selected": true, "text": "All", "value": "$__all"}
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Pod CPU Usage (cores)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"model-dev\", container!=\"\", pod=~\"$pod\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Pod Memory Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"model-dev\", container!=\"\", pod=~\"$pod\"}) by (pod)",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes"
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Running Pods",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 12, "x": 0, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "count(kube_pod_status_phase{namespace=\"model-dev\", phase=\"Running\"})",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Network Received (bytes/s)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"model-dev\", pod=~\"$pod\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps"
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Network Transmitted (bytes/s)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"model-dev\", pod=~\"$pod\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps"
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "GPU Utilization %",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_GPU_UTIL{exported_namespace=\"model-dev\", exported_pod=~\"$pod\"}",
+              "legendFormat": "{{exported_pod}} - GPU {{gpu}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 7,
+          "title": "GPU Memory Used",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_FB_USED{exported_namespace=\"model-dev\", exported_pod=~\"$pod\"} * 1024 * 1024",
+              "legendFormat": "{{exported_pod}} - GPU {{gpu}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes"
+            }
+          }
+        },
+        {
+          "id": 8,
+          "title": "GPU Temperature",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_GPU_TEMP{exported_namespace=\"model-dev\", exported_pod=~\"$pod\"}",
+              "legendFormat": "{{exported_pod}} - GPU {{gpu}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius"
+            }
+          }
+        },
+        {
+          "id": 9,
+          "title": "GPU Power Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+          "datasource": {"type": "prometheus", "uid": "thanos-querier"},
+          "targets": [
+            {
+              "expr": "DCGM_FI_DEV_POWER_USAGE{exported_namespace=\"model-dev\", exported_pod=~\"$pod\"}",
+              "legendFormat": "{{exported_pod}} - GPU {{gpu}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "watt"
+            }
+          }
+        }
+      ],
+      "schemaVersion": 38,
+      "version": 3
+    }
+

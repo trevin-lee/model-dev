@@ -1,0 +1,90 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tests-infra-healthcheck
+  namespace: model-dev
+  labels:
+    tier: tests
+    type: healthcheck
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - ucsd
+      restartPolicy: Never
+      containers:
+      - name: test
+        image: curlimages/curl:8.5.0
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -e
+          PASS=0
+          FAIL=0
+          
+          test_endpoint() {
+            local name="$1"
+            local url="$2"
+            local expected_code="${3:-200}"
+            
+            echo -n "Testing $name... "
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000")
+            
+            if [ "$code" = "$expected_code" ]; then
+              echo "✓ PASS ($code)"
+              PASS=$((PASS + 1))
+            else
+              echo "✗ FAIL (got $code, expected $expected_code)"
+              FAIL=$((FAIL + 1))
+            fi
+          }
+          
+          echo "========================================="
+          echo "  Infrastructure Health Check"
+          echo "========================================="
+          echo ""
+          
+          # Internal service endpoints
+          echo "--- Internal Services ---"
+          test_endpoint "MLflow API" "http://infra-mlflow-service:5000/health" "200"
+          test_endpoint "Jupyter" "http://infra-jupyter-service:8888/api" "200"
+          test_endpoint "File Browser" "http://infra-browser-service:80/health" "200"
+          test_endpoint "Grafana" "http://infra-grafana-service:3000/api/health" "200"
+          test_endpoint "Prometheus" "http://infra-prometheus-service:9090/-/healthy" "200"
+          test_endpoint "Registry" "http://infra-registry-service:5000/v2/" "200"
+          test_endpoint "Dashboard" "http://infra-dashboard-service:8080" "200"
+          test_endpoint "Authelia" "http://infra-authelia-service:9091/api/health" "200"
+          
+          echo ""
+          echo "--- Registry API ---"
+          test_endpoint "Registry Catalog" "http://infra-registry-service:5000/v2/_catalog" "200"
+          
+          echo ""
+          echo "--- Prometheus Metrics ---"
+          test_endpoint "Prometheus Query" "http://infra-prometheus-service:9090/api/v1/query?query=up" "200"
+          
+          echo ""
+          echo "========================================="
+          echo "  Results: $PASS passed, $FAIL failed"
+          echo "========================================="
+          
+          if [ "$FAIL" -gt 0 ]; then
+            exit 1
+          fi
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "32Mi"
+          limits:
+            cpu: "200m"
+            memory: "64Mi"
+
